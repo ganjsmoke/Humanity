@@ -1,6 +1,7 @@
 from web3 import Web3
 from colorama import init, Fore, Style
 import sys
+import time
 
 # Initialize colorama
 init(autoreset=True)
@@ -89,6 +90,12 @@ def claim_rewards(private_key):
 # Main execution: display header, load private keys, and claim rewards for each
 if __name__ == "__main__":
     display_header()
-    private_keys = load_private_keys('private_keys.txt')
-    for private_key in private_keys:
-        claim_rewards(private_key)
+    # Infinite loop to run the process every 6 hours
+    while True:
+        private_keys = load_private_keys('private_keys.txt')
+        for private_key in private_keys:
+            claim_rewards(private_key)
+        
+        # Wait for 6 hours (1 * 60 * 60 seconds)
+        print(Fore.CYAN + "Waiting for 6 hours before the next run...")
+        time.sleep(6 * 60 * 60)
