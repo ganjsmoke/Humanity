@@ -1,7 +1,9 @@
+import time
+import threading
+import requests
 from web3 import Web3
 from colorama import init, Fore, Style
 import sys
-import time
 
 # Initialize colorama
 init(autoreset=True)
@@ -112,15 +114,58 @@ def proceed_to_claim(sender_address, private_key):
     except Exception as e:
         print(Fore.RED + f"Error processing claim for {sender_address}: {str(e)}")
 
+# Function to claim faucet tokens
+def claim_faucet(wallet_address):
+    url = "https://faucet.testnet.humanity.org/api/claim"
+    payload = {
+        "address": wallet_address
+    }
+
+    try:
+        response = requests.post(url, json=payload)
+        response_data = response.json()
+        
+        # Check if the request was successful
+        if "msg" in response_data:
+            tx_hash = response_data["msg"]
+            print(Fore.GREEN + f"Faucet claim successful for {wallet_address}, TxHash: {tx_hash}")
+        else:
+            print(Fore.RED + f"Faucet claim failed for {wallet_address}, Response: {response_data}")
+    
+    except Exception as e:
+        print(Fore.RED + f"Error claiming faucet for {wallet_address}: {str(e)}")
+
+# Function to perform periodic task (including faucet claim)
+def perform_periodic_task():
+    while True:
+        private_keys = load_private_keys('private_keys.txt')
+        for private_key in private_keys:
+            # Derive the sender's address from the private key
+            account = web3.eth.account.from_key(private_key)
+            wallet_address = account.address
+            # Call the claim faucet function
+            claim_faucet(wallet_address)
+            
+            # Wait 1 minute before claiming for the next wallet
+            print(Fore.CYAN + "Waiting 1 minute before claiming for the next wallet...")
+            time.sleep(60)
+
+        # Optionally add other periodic tasks here, if needed
+
 # Main execution: display header, load private keys, and claim rewards for each
 if __name__ == "__main__":
     display_header()
-    # Infinite loop to run the process every 6 hours
+
+    # Start the periodic task in a separate thread
+    periodic_task_thread = threading.Thread(target=perform_periodic_task, daemon=True)
+    periodic_task_thread.start()
+    
+    # Infinite loop to run the process every 6 hours (claiming rewards)
     while True:
         private_keys = load_private_keys('private_keys.txt')
         for private_key in private_keys:
             claim_rewards(private_key)
-        
+
         # Wait for 6 hours (1 * 60 * 60 seconds)
         print(Fore.CYAN + "Waiting for 6 hours before the next run...")
         time.sleep(6*60*60)  # For testing purposes, you may want to reduce this time
